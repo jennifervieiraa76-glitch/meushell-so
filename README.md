@@ -106,3 +106,14 @@ vivo, sorteada na hora, justamente para separar os dois casos.
    do repositório e anexem o `evidencias/verificacao-N.txt`.
 4. Cada integrante recebe uma cópia por e-mail. **Guardem esse e-mail**: é o
    comprovante.
+
+## Entrega 1 — Árvore de processos ao rodar `ls -l`
+
+    bash (terminal)
+     └── meushell          ← pai: lê a linha e chama fork()
+          └── ls -l        ← filho: nasce como cópia do meushell e
+                             vira o ls quando chama execvp()
+
+Os dois processos passam a existir no instante em que o fork() retorna:
+antes dele há só o meushell; depois dele o pai recebe o pid do filho e o
+filho recebe 0. O filho troca de programa com execvp e o pai espera com waitpid.

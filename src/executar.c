@@ -45,9 +45,27 @@ int aplicar_redir(struct redir *r)
 
 int executar_comando(char *v[], int n, struct redir *r, int fundo)
 {
-    (void)v; (void)n; (void)r; (void)fundo;
-    FALTA_ESCREVER("a criacao de processos (Entrega 1)");
-    return 3;
+    (void)n; (void)r; (void)fundo;   /* so serao usados nas proximas entregas */
+
+    pid_t pid = fork();              /* a partir daqui existem DOIS processos */
+
+    if (pid < 0) {                   /* o fork falhou */
+        perror("fork");
+        return 1;
+    }
+
+    if (pid == 0) {                  /* FILHO (o fork devolveu 0 para ele) */
+        signal(SIGINT, SIG_DFL);     /* o Ctrl-C volta a matar este processo */
+        execvp(v[0], v);             /* troca este processo pelo programa v[0] */
+        /* so chega aqui se o execvp FALHOU (comando nao existe) */
+        fprintf(stderr, "meushell: comando nao encontrado: %s\n", v[0]);
+        _exit(127);                  /* _exit, nao exit: nao duplica buffers */
+    }
+
+    /* PAI (o fork devolveu a ele o numero do filho) */
+    int status;
+    waitpid(pid, &status, 0);        /* espera ESSE filho terminar */
+    return codigo_de(status);        /* traduz o status em codigo de saida */
 }
 
 int executar_com_cano(char *ve[], int ne, struct redir *re,
