@@ -117,3 +117,20 @@ vivo, sorteada na hora, justamente para separar os dois casos.
 Os dois processos passam a existir no instante em que o fork() retorna:
 antes dele há só o meushell; depois dele o pai recebe o pid do filho e o
 filho recebe 0. O filho troca de programa com execvp e o pai espera com waitpid.
+
+## Entrega 2 — Descritores em `ls | wc -l`
+
+O shell cria o cano com `pipe()` (ponta de leitura e ponta de escrita, que
+aqui ficam nos descritores 3 e 4) e depois faz dois `fork`. Os dois filhos
+herdam a mesma tabela; cada um ajusta a sua com `dup2` antes do `execvp`.
+
+| Descritor | Antes do dup2 (os dois filhos) | Esquerda (`ls`) depois | Direita (`wc -l`) depois |
+|---|---|---|---|
+| 0 (entrada) | terminal | terminal | **cano (leitura)** |
+| 1 (saída)   | terminal | **cano (escrita)** | terminal |
+| 2 (erro)    | terminal | terminal | terminal |
+| 3 (cano, leitura) | aberto | fechado | fechado (já copiado no 0) |
+| 4 (cano, escrita) | aberto | fechado (já copiado no 1) | fechado |
+
+O pai também fecha as duas pontas: se alguma ponta de escrita ficasse aberta,
+o `wc -l` nunca receberia o fim dos dados e o shell travaria.
