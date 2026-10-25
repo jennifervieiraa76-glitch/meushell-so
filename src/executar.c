@@ -59,8 +59,6 @@ int aplicar_redir(struct redir *r)
 
 int executar_comando(char *v[], int n, struct redir *r, int fundo)
 {
-    (void)n; (void)fundo;            /* fundo sera usado na Entrega 3 */
-
     pid_t pid = fork();              /* a partir daqui existem DOIS processos */
 
     if (pid < 0) {
@@ -69,15 +67,25 @@ int executar_comando(char *v[], int n, struct redir *r, int fundo)
     }
 
     if (pid == 0) {                  /* FILHO */
-        signal(SIGINT, SIG_DFL);     /* o Ctrl-C volta a matar este processo */
-        if (aplicar_redir(r) < 0)    /* dup2 DEPOIS do fork e ANTES do execvp */
+        if (!fundo)
+            signal(SIGINT, SIG_DFL); /* primeiro plano: o Ctrl-C volta a mata-lo */
+        if (aplicar_redir(r) < 0)
             _exit(1);
         execvp(v[0], v);
         fprintf(stderr, "meushell: comando nao encontrado: %s\n", v[0]);
         _exit(127);
     }
 
-    int status;                      /* PAI */
+    if (fundo) {                     /* PAI, com &: anota e NAO espera */
+        char cmd[256] = "";
+        int pos = 0;
+        for (int i = 0; i < n && v[i] && pos < (int)sizeof cmd; i++)
+            pos += snprintf(cmd + pos, sizeof cmd - pos, "%s%s", i ? " " : "", v[i]);
+        anotar_trabalho(pid, v[0]);
+        return 0;
+    }
+
+    int status;                      /* PAI, primeiro plano: espera */
     waitpid(pid, &status, 0);
     return codigo_de(status);
 }

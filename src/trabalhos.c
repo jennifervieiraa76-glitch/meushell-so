@@ -21,33 +21,41 @@
 #include <sys/wait.h>
 #include "comum.h"
 
+/* Tabela dos trabalhos em segundo plano */
+#define MAX_TRAB 64
+static struct { int n; pid_t pid; char cmd[256]; int vivo; } trab[MAX_TRAB];
+static int qtd = 0;        /* quantos ja foram anotados */
+
 void preparar_sinais(void)
 {
-    /* Chamada UMA vez, no inicio. Enquanto a Entrega 3 nao existe ela fica
-       calada de proposito: reclamar aqui carimbaria a mensagem na saida de
-       erro de toda execucao, inclusive nos testes da Entrega 1. O verificador
-       cobra o comportamento — o shell sobreviver ao Ctrl-C —, nao a chamada.
-
-       Aqui vai o signal(SIGINT, SIG_IGN) do shell. Lembre que o filho HERDA
-       esse "ignorar": e executar.c que precisa devolver o padrao antes do
-       execvp, senao o Ctrl-C nao mata comando nenhum. */
+    signal(SIGINT, SIG_IGN);   /* o SHELL ignora o Ctrl-C e nao morre */
 }
 
 void anotar_trabalho(pid_t pid, const char *comando)
 {
-    (void)pid; (void)comando;
-    FALTA_ESCREVER("a anotacao de trabalhos em segundo plano (Entrega 3)");
+    if (qtd >= MAX_TRAB) return;
+    trab[qtd].n = qtd + 1;
+    trab[qtd].pid = pid;
+    snprintf(trab[qtd].cmd, sizeof trab[qtd].cmd, "%s", comando);
+    trab[qtd].vivo = 1;
+    qtd++;
 }
 
 void colher_trabalhos(void)
 {
-    /* Enquanto a Entrega 3 nao existe, esta funcao nao faz nada e nao
-       reclama: ela e chamada antes de CADA linha, e reclamar aqui encheria a
-       saida de erro de ruido. O verificador cobra o resultado — zumbi zero —,
-       nao a chamada. */
+    int status;
+    pid_t pid;
+    /* WNOHANG: se ninguem terminou, devolve 0 na hora em vez de esperar */
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        for (int i = 0; i < qtd; i++)
+            if (trab[i].pid == pid) trab[i].vivo = 0;   /* colhido: nao e mais zumbi */
+    }
 }
 
 void listar_trabalhos(void)
 {
-    FALTA_ESCREVER("o embutido jobs (Entrega 3)");
+    for (int i = 0; i < qtd; i++)
+        if (trab[i].vivo)
+            printf("[%d] %d %s\n", trab[i].n, (int)trab[i].pid, trab[i].cmd);
+    fflush(stdout);
 }

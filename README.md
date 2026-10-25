@@ -134,3 +134,10 @@ herdam a mesma tabela; cada um ajusta a sua com `dup2` antes do `execvp`.
 
 O pai também fecha as duas pontas: se alguma ponta de escrita ficasse aberta,
 o `wc -l` nunca receberia o fim dos dados e o shell travaria.
+
+## Entrega 3 — Por que o `cd` precisa ser embutido
+
+O diretório atual é um atributo de cada processo, guardado pelo núcleo.
+Se o `cd` fosse um programa externo, o shell faria fork e quem mudaria de
+diretório seria o filho, que termina em seguida e leva a mudança junto.
+O pai (o shell) continuaria onde estava; por isso o `cd` chama `chdir()` no próprio processo do shell.
