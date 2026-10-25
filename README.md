@@ -141,3 +141,31 @@ O diretório atual é um atributo de cada processo, guardado pelo núcleo.
 Se o `cd` fosse um programa externo, o shell faria fork e quem mudaria de
 diretório seria o filho, que termina em seguida e leva a mudança junto.
 O pai (o shell) continuaria onde estava; por isso o `cd` chama `chdir()` no próprio processo do shell.
+
+## Entrega 4 — O shell mede o sistema
+
+Números medidos pelo grupo no Google Cloud Shell:
+
+| Programa | parede (s) | usuário (s) | sistema (s) | trocas voluntárias | trocas involuntárias | faltas menores | faltas maiores | RSS pico (KB) |
+|---|---|---|---|---|---|---|---|---|
+| `girar`   | 0,208 | 0,206 | 0,001 | 1   | 3 | 77     | 0 | 1704  |
+| `esperar` | 0,318 | 0,000 | 0,005 | 151 | 1 | 69     | 0 | 1348  |
+| `comer`   | 0,055 | 0,014 | 0,041 | 1   | 1 | 15428  | 0 | 62676 |
+
+### A inversão das trocas de contexto
+
+O `esperar` só dorme: cada vez que chama `sleep` ele mesmo entrega a CPU
+ao escalonador, e por isso tem 151 trocas **voluntárias** e quase nenhuma
+involuntária. O `girar` só calcula e nunca pede para sair; ele só perde a
+CPU quando o escalonador o interrompe ao fim da fatia de tempo, por isso
+as trocas dele são **involuntárias**. A diferença entre parede e usuário
+mostra o mesmo: o `esperar` passou 0,318 s no relógio e 0,000 s de CPU.
+
+### Tamanho da página
+
+O `comer` toca 60 MB = 60 × 1024 × 1024 = 62.914.560 bytes.
+Descontando as ~69 faltas que qualquer programa tem só para iniciar
+(as do `esperar`): 15.428 − 69 = 15.359 faltas.
+
+62.914.560 ÷ 15.359 ≈ **4096 bytes = 4 KB por página**,
+confirmado por `getconf PAGESIZE` = 4096.
